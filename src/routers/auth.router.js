@@ -1,6 +1,7 @@
 const express = require('express');
 const passport = require('passport');
 const bcrypt = require('bcrypt');
+const rimraf = require('rimraf');
 
 const User = require('../database/models/user.model');
 
@@ -37,6 +38,22 @@ router.post('/register', (req, res) => {
       console.log(err);
       return res.sendStatus(500);
     })
+});
+
+router.delete('/register', (req, res) => {
+  if (!req.isAuthenticated()) { return res.sendStatus(403); }
+
+  if (req.user.role !== 'ADMIN') { return res.sendStatus(403); }
+
+  User.deleteOne({ ObjectId: req.body.userId }, function (err) {
+    if (err) { return res.sendStatus(500); }
+
+    rimraf(`${process.env.ROOT}/uploads/${req.body.userId}`, function (err) {
+      if (err) { return res.sendStatus(500); }
+
+      return res.sendStatus(200);
+    });
+  })
 });
 
 module.exports = router;
