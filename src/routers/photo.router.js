@@ -1,15 +1,22 @@
 const express = require('express');
 
+const bodyParser = require('body-parser');
 const multer  = require('multer');
+const fs = require('fs');
 
 const Photo = require('../database/models/photo.model');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, `uploads/${req.user.objectId}`);
+
+    fs.mkdir(`${process.env.ROOT}/uploads/${req.body.userId}`, function (err) {
+      cb(null, `uploads/${req.body.userId}/`);
+    })
   },
   filename: function (req, file, cb) {
-    cb(null, file.fieldname + '-' + Date.now());
+    const parts = file.originalname.split('.');
+    const extension = parts[parts.length - 1];
+    cb(null, `${file.fieldname}-${Date.now()}.${extension}`);
   }
 });
 const upload = multer({ storage });
@@ -31,12 +38,16 @@ router.route('/photos')
   .post(upload.single('photo'), (req, res) => {
 
     const photo = new Photo({
-      url: `uploads/${}`,
-      userId: null,
+      url: req.file.path,
+      userId: req.body.userId,
       selected: false,
     });
 
-    return res.sendStatus(201);
+    photo.save({}, (err, item) => {
+      if (err) { return res.sendStatus(400); }
+
+      return res.status(201).json(item);
+    });
   });
 
 module.exports = router;
