@@ -36,6 +36,7 @@ router.route('/photos')
       });
   })
   .post(upload.single('photo'), (req, res) => {
+    if (!req.isAuthenticated()) { return res.sendStatus(403); }
 
     const photo = new Photo({
       url: req.file.path,
@@ -48,6 +49,15 @@ router.route('/photos')
 
       return res.status(201).json(item);
     });
+  })
+  .delete((req, res) => {
+    if (!req.isAuthenticated()) { return res.sendStatus(403); }
+
+    Photo.deleteMany({ ObjectId: { $in: req.body.userIds } }, function (err) {
+      if (err) { return res.sendStatus(400); }
+
+      return res.sendStatus(200);
+    })
   });
 
 module.exports = router;
